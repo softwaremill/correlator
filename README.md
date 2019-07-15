@@ -10,5 +10,5 @@ Usage:
 * create an object extending the `CorrelationId` class, e.g. `object MyCorrelationId extends CorrelationId()`
 * call `MyCorrelationId.init()` immediately after your program starts (in the `main()` method)
 * wrap your `HttpRoutes[Task]` with `MyCorrelationId.setCorrelationIdMiddleware`, so that a correlation id is
-extracted from requests, or a new one is created.
+extracted from the request (using the provided header name), or a new one is created.
 * you can access the current correlation id (if any is set) using `MyCorrelationId.apply()`. 
