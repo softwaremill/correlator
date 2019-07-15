@@ -17,7 +17,7 @@ import scala.util.Random
   * See [[https://blog.softwaremill.com/correlation-ids-in-scala-using-monix-3aa11783db81]] for details.
   */
 class CorrelationId(
-    headerName: String = "X-Correlation-ID",
+    val headerName: String = "X-Correlation-ID",
     logStartRequest: (String, Request[Task]) => Task[Unit] = (cid, req) =>
       Task(CorrelationId.logger.debug(s"Starting request with id: $cid, to: ${req.uri.path}"))
 ) {
