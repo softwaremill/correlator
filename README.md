@@ -1,5 +1,7 @@
 # Correlation id support
 
+[![Build Status](https://travis-ci.org/softwaremill/correlator.svg?branch=master)](https://travis-ci.org/softwaremill/correlator)
+
 See [the blog](https://blog.softwaremill.com/correlation-ids-in-scala-using-monix-3aa11783db81) for introduction.
 
 Currently supports [monix](https://monix.io), [http4s](https://http4s.org) & [logback](https://logback.qos.ch).
