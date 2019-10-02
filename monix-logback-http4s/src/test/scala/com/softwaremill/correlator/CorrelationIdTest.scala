@@ -8,7 +8,7 @@ import org.http4s.dsl.Http4sDsl
 import org.scalatest.{FlatSpec, Matchers}
 import monix.execution.Scheduler.Implicits.global
 import org.slf4j.{Logger, LoggerFactory}
-
+import org.http4s.implicits._
 import scala.collection.JavaConverters._
 
 class CorrelationIdTest extends FlatSpec with Matchers {
@@ -30,7 +30,7 @@ class CorrelationIdTest extends FlatSpec with Matchers {
     response.status shouldBe Status.Ok
 
     seenCids.asScala.toList should have size (1)
-    seenCids.asScala.toList.foreach(_ shouldBe 'defined)
+    seenCids.asScala.toList.foreach(_ shouldBe Symbol("defined"))
   }
 
   it should "use correlation id from the header if available" in new Fixture {
