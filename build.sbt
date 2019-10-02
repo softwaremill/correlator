@@ -16,9 +16,7 @@ lazy val rootProject = (project in file("."))
   .settings(commonSettings: _*)
   .settings(
     publishArtifact := false,
-    name := "root",
-    crossScalaVersions := Nil,
-    publish / skip := true
+    name := "root"
   )
   .settings(publishTravisSettings)
   .aggregate(monixLogbackHttp4s)
