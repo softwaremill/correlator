@@ -25,7 +25,7 @@ final class CorrelationId(
 
   def init: UIO[Unit] = ZioMDCAdapter.init(runtime)
 
-  def get: UIO[Option[String]] = Task(Option(MDC.get(MdcKey))).orElse(UIO.apply(None))
+  def get: Task[Option[String]] = Task(Option(MDC.get(MdcKey)))
 
   def setCorrelationIdMiddleware(service: HttpRoutes[Task]): HttpRoutes[Task] =
     Kleisli { req: Request[Task] =>
