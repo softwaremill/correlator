@@ -6,8 +6,7 @@ import org.http4s._
 import org.http4s.dsl.Http4sDsl
 import org.scalatest.{FlatSpec, Matchers}
 import org.slf4j.{Logger, LoggerFactory}
-import zio.{DefaultRuntime, Task}
-
+import zio.{DefaultRuntime, Task, ZEnv}
 import scala.collection.JavaConverters._
 
 class CorrelationIdTest extends FlatSpec with Matchers {
@@ -52,7 +51,7 @@ class CorrelationIdTest extends FlatSpec with Matchers {
 
     val seenCids = new ConcurrentLinkedQueue[Option[String]]()
     implicit val runtime: DefaultRuntime = new DefaultRuntime {}
-    val correlationId: CorrelationId = new CorrelationId()
+    val correlationId: CorrelationId[ZEnv] = new CorrelationId()
 
     val routes: HttpRoutes[Task] = HttpRoutes.of[Task] {
       case _ =>

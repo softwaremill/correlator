@@ -7,21 +7,22 @@ import ch.qos.logback.classic.util.LogbackMDCAdapter
 import org.http4s.util.CaseInsensitiveString
 import org.http4s.{HttpRoutes, Request, Response}
 import org.slf4j.{Logger, LoggerFactory, MDC}
+import zio.random.Random
 import zio.{FiberRef, Runtime, Task, UIO, ZIO}
-
-import scala.util.Random
 
 /**
   * Correlation id support. The `init()` method should be called when the application starts.
   * See [[https://blog.softwaremill.com/correlation-ids-in-scala-using-monix-3aa11783db81]] for details.
   */
-final class CorrelationId(
+final class CorrelationId[R <: Random](
     val headerName: String = "X-Correlation-ID",
     logStartRequest: (String, Request[Task]) => Task[Unit] = (cid, req) =>
       Task(CorrelationId.logger.debug(s"Starting request with id: $cid, to: ${req.uri.path}"))
-)(implicit runtime: Runtime[Any]) {
+)(implicit runtime: Runtime[R]) {
   private val MdcKey = "cid"
-  private val random = new Random()
+  import runtime.environment._
+  import cats.implicits._
+  import zio.interop.catz._
 
   def init: UIO[Unit] = ZioMDCAdapter.init(runtime)
 
@@ -29,22 +30,23 @@ final class CorrelationId(
 
   def setCorrelationIdMiddleware(service: HttpRoutes[Task]): HttpRoutes[Task] =
     Kleisli { req: Request[Task] =>
-      val cid = req.headers.get(CaseInsensitiveString(headerName)).fold(newCorrelationId())(_.value)
+      val cidM = req.headers.get(CaseInsensitiveString(headerName)).fold(newCorrelationId)(_.value.pure[UIO])
 
       val setupAndService: Task[Option[Response[Task]]] =
         for {
-          _ <- Task(MDC.put(MdcKey, cid))
-          _ <- logStartRequest(cid, req)
-          r <- service(req).value
+          cid <- cidM
+          _   <- Task(MDC.put(MdcKey, cid))
+          _   <- logStartRequest(cid, req)
+          r   <- service(req).value
         } yield r
 
       OptionT(setupAndService.ensuring(Task(MDC.remove(MdcKey)).orElse(ZIO.unit)))
     }
 
-  private def newCorrelationId(): String = {
-    def randomUpperCaseChar() = (random.nextInt(91 - 65) + 65).toChar
-    def segment: String = (1 to 3).map(_ => randomUpperCaseChar()).mkString
-    s"$segment-$segment-$segment"
+  private val newCorrelationId: UIO[String] = {
+    val randomUpperCaseChar: UIO[Char] = random.nextInt(91 - 65).map(r => (r + 65).toChar)
+    val segment: UIO[String] = (1 to 3).toList.traverse(_ => randomUpperCaseChar).map(_.mkString)
+    segment.map(_.mkString("-"))
   }
 }
 
