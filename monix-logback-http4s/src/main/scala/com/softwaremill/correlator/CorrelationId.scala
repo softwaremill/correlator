@@ -75,7 +75,9 @@ class MonixMDCAdapter extends LogbackMDCAdapter {
 
   override def get(key: String): String = map().get(key)
   override def remove(key: String): Unit = {
-    map().remove(key)
+    if (map() ne ju.Collections.EMPTY_MAP) {
+      map().remove(key)
+    }
     ()
   }
 

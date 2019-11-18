@@ -71,7 +71,9 @@ class ZioMDCAdapter[+R](fiber: FiberRef[ju.Map[String, String]])(implicit runtim
   override def remove(key: String): Unit =
     runtime.unsafeRun {
       fiber.modify { map =>
-        map.remove(key)
+        if (map ne ju.Collections.EMPTY_MAP) {
+          map.remove(key)
+        }
         ((), map)
       }
     }
