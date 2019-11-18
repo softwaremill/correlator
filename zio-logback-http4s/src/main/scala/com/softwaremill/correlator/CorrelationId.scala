@@ -20,8 +20,8 @@ final class CorrelationId[R <: Random](
       Task(CorrelationId.logger.debug(s"Starting request with id: $cid, to: ${req.uri.path}"))
 )(implicit runtime: Runtime[R]) {
   private val MdcKey = "cid"
-  import runtime.environment._
   import cats.implicits._
+  import runtime.environment._
   import zio.interop.catz._
 
   def init: UIO[Unit] = ZioMDCAdapter.init(runtime)
@@ -46,7 +46,7 @@ final class CorrelationId[R <: Random](
   private val newCorrelationId: UIO[String] = {
     val randomUpperCaseChar: UIO[Char] = random.nextInt(91 - 65).map(r => (r + 65).toChar)
     val segment: UIO[String] = (1 to 3).toList.traverse(_ => randomUpperCaseChar).map(_.mkString)
-    segment.map(_.mkString("-"))
+    (segment, segment, segment).mapN((a, b, c) => s"$a-$b-$c")
   }
 }
 
