@@ -19,10 +19,11 @@ final class CorrelationId[R <: Random](
     logStartRequest: (String, Request[Task]) => Task[Unit] = (cid, req) =>
       Task(CorrelationId.logger.debug(s"Starting request with id: $cid, to: ${req.uri.path}"))
 )(implicit runtime: Runtime[R]) {
-  private val MdcKey = "cid"
   import cats.implicits._
   import runtime.environment._
   import zio.interop.catz._
+
+  private val MdcKey = "cid"
 
   def init: UIO[Unit] = ZioMDCAdapter.init(runtime)
 
