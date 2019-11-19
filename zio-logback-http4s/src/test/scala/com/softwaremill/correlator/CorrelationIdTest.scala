@@ -6,7 +6,8 @@ import org.http4s._
 import org.http4s.dsl.Http4sDsl
 import org.scalatest.{FlatSpec, Matchers}
 import org.slf4j.{Logger, LoggerFactory}
-import zio.{DefaultRuntime, Task, ZEnv}
+import zio.{DefaultRuntime, Task, ZEnv, ZIO}
+
 import scala.collection.JavaConverters._
 
 class CorrelationIdTest extends FlatSpec with Matchers {
@@ -21,11 +22,17 @@ class CorrelationIdTest extends FlatSpec with Matchers {
     // given
     val request = Request[Task](method = GET, uri = uri"/test")
 
+    val app: ZIO[ZEnv, Throwable, HttpRoutes[Task]] =
+      for {
+        implicit0(runtime: zio.Runtime[ZEnv])            <- ZIO.runtime[ZEnv]
+        correlationIdMiddleware: CorrelationIdMiddleware <- CorrelationIdMiddleware.init
+      } yield correlationIdMiddleware.addTo(routes)
+
     // when
-    val response = runtime.unsafeRun(correlationId.setCorrelationIdMiddleware(routes).apply(request).value).get
+    val response: ZIO[ZEnv, Throwable, Option[Response[Task]]] = app.flatMap(_.apply(request).value)
 
     //then
-    response.status shouldBe Status.Ok
+    runtime.unsafeRun(response).get.status shouldBe Status.Ok
 
     seenCids.asScala.toList should have size (1)
     seenCids.asScala.toList.foreach(_ shouldBe Symbol("defined"))
@@ -34,14 +41,20 @@ class CorrelationIdTest extends FlatSpec with Matchers {
   it should "use correlation id from the header if available" in new Fixture {
     // given
     val testCid = "some-cid"
-    val request =
-      Request[Task](method = GET, uri = uri"/test", headers = Headers.of(Header(correlationId.headerName, testCid)))
+    val request: Request[Task] =
+      Request[Task](method = GET, uri = uri"/test", headers = Headers.of(Header(CorrelationIdMiddleware.defaultHeaderName, testCid)))
+
+    val app: ZIO[ZEnv, Throwable, HttpRoutes[Task]] =
+      for {
+        implicit0(runtime: zio.Runtime[ZEnv])            <- ZIO.runtime[ZEnv]
+        correlationIdMiddleware: CorrelationIdMiddleware <- CorrelationIdMiddleware.init
+      } yield correlationIdMiddleware.addTo(routes)
 
     // when
-    val response = runtime.unsafeRun(correlationId.setCorrelationIdMiddleware(routes).apply(request).value).get
+    val response: ZIO[ZEnv, Throwable, Option[Response[Task]]] = app.flatMap(_.apply(request).value)
 
     //then
-    response.status shouldBe Status.Ok
+    runtime.unsafeRun(response).get.status shouldBe Status.Ok
 
     seenCids.asScala.toList shouldBe List(Some(testCid))
   }
@@ -51,12 +64,10 @@ class CorrelationIdTest extends FlatSpec with Matchers {
 
     val seenCids = new ConcurrentLinkedQueue[Option[String]]()
     implicit val runtime: DefaultRuntime = new DefaultRuntime {}
-    val correlationId: CorrelationId[ZEnv] = new CorrelationId()
 
     val routes: HttpRoutes[Task] = HttpRoutes.of[Task] {
       case _ =>
-        correlationId
-          .get
+        CorrelationIdMiddleware.getCorrelationId
           .flatMap(cid => Task(seenCids.add(cid)))
           .flatMap(_ => Task(logger.info("Hello!")))
           .map(_ => Response[Task](Status.Ok))
