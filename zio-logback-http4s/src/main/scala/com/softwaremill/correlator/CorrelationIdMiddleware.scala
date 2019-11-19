@@ -1,14 +1,14 @@
 package com.softwaremill.correlator
 
-import java.{util => ju}
+import java.{ util => ju }
 
-import cats.data.{Kleisli, OptionT}
+import cats.data.{ Kleisli, OptionT }
 import ch.qos.logback.classic.util.LogbackMDCAdapter
 import org.http4s.util.CaseInsensitiveString
-import org.http4s.{HttpRoutes, Request, Response}
-import org.slf4j.{Logger, LoggerFactory, MDC}
+import org.http4s.{ HttpRoutes, Request, Response }
+import org.slf4j.{ Logger, LoggerFactory, MDC }
 import zio.random.Random
-import zio.{FiberRef, RIO, Runtime, Task, UIO, URIO, ZIO}
+import zio.{ FiberRef, RIO, Runtime, Task, UIO, URIO, ZIO }
 import com.github.ghik.silencer.silent
 
 object CorrelationIdMiddleware {
@@ -37,7 +37,7 @@ object CorrelationIdMiddleware {
     headerName: String = defaultHeaderName,
     logStartRequest: (String, Request[Task]) => Task[Unit] = defaultLogStartRequest,
     idGenerator: RIO[R, String] = defaultIdGenerator
-  )(service: HttpRoutes[Task])(implicit runtime: Runtime[R], zioMDCAdapter: ZioMDCAdapter): HttpRoutes[Task] =
+  )(service: HttpRoutes[Task])(implicit zioMDCAdapter: ZioMDCAdapter): HttpRoutes[Task] =
     Kleisli { req: Request[Task] =>
       val cidM: Task[String] =
         req.headers.get(CaseInsensitiveString(headerName)).fold(idGenerator.asInstanceOf[Task[String]])(_.value.pure[Task])
@@ -58,8 +58,7 @@ object CorrelationIdMiddleware {
  * Based on [[https://olegpy.com/better-logging-monix-1/]]. Makes the current correlation id available for logback
  * loggers.
  */
-final class ZioMDCAdapter private[correlator] (fiber: FiberRef[ju.Map[String, String]])(implicit runtime: Runtime[_])
-    extends LogbackMDCAdapter {
+final class ZioMDCAdapter private[correlator] (fiber: FiberRef[ju.Map[String, String]], runtime: Runtime[_]) extends LogbackMDCAdapter {
   override def get(key: String): String = runtime.unsafeRun { fiber.get.map(_.get(key)) }
 
   override def put(key: String, `val`: String): Unit =
@@ -91,11 +90,12 @@ final class ZioMDCAdapter private[correlator] (fiber: FiberRef[ju.Map[String, St
 }
 
 object ZioMDCAdapter {
-  def init(implicit runtime: Runtime[_]): Task[ZioMDCAdapter] =
+  final val init: Task[ZioMDCAdapter] =
     for {
-      fiber <- FiberRef.make[ju.Map[String, String]](new ju.HashMap())
+      runtime <- ZIO.runtime[Any]
+      fiber   <- FiberRef.make[ju.Map[String, String]](new ju.HashMap())
     } yield {
-      val adapter = new ZioMDCAdapter(fiber)
+      val adapter = new ZioMDCAdapter(fiber, runtime)
       val field   = classOf[MDC].getDeclaredField("mdcAdapter")
       field.setAccessible(true)
       field.set(null, adapter)
