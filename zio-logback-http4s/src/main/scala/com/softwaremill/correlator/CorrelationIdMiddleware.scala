@@ -8,67 +8,58 @@ import org.http4s.util.CaseInsensitiveString
 import org.http4s.{HttpRoutes, Request, Response}
 import org.slf4j.{Logger, LoggerFactory, MDC}
 import zio.random.Random
-import zio.{FiberRef, Runtime, Task, UIO, ZIO}
+import zio.{FiberRef, RIO, Runtime, Task, UIO, URIO, ZIO}
+import com.github.ghik.silencer.silent
 
-/**
-  * Correlation id support. The `init()` method should be called when the application starts.
-  * See [[https://blog.softwaremill.com/correlation-ids-in-scala-using-monix-3aa11783db81]] for details.
-  */
-final class CorrelationIdMiddleware private[correlator] (val headerName: String, logStartRequest: (String, Request[Task]) => Task[Unit]) {
-  import CorrelationIdMiddleware._
+object CorrelationIdMiddleware {
   import cats.implicits._
   import zio.interop.catz._
 
-  def addTo[R <: Random](service: HttpRoutes[Task])(implicit runtime: Runtime[R]): HttpRoutes[Task] =
-    Kleisli { req: Request[Task] =>
-      val cidM = req.headers.get(CaseInsensitiveString(headerName)).fold(newCorrelationId(runtime.environment))(_.value.pure[UIO])
-
-      val setupAndService: Task[Option[Response[Task]]] =
-        for {
-          cid <- cidM
-          _   <- Task(MDC.put(MdcKey, cid))
-          _   <- logStartRequest(cid, req)
-          r   <- service(req).value
-        } yield r
-
-      OptionT(setupAndService.ensuring(Task(MDC.remove(MdcKey)).orElse(ZIO.unit)))
-    }
-
-  private def newCorrelationId(random: Random): UIO[String] = {
-    val randomUpperCaseChar: UIO[Char] = random.random.nextInt(91 - 65).map(r => (r + 65).toChar)
-    val segment: UIO[String] = (1 to 3).toList.traverse(_ => randomUpperCaseChar).map(_.mkString)
-    (segment, segment, segment).mapN((a, b, c) => s"$a-$b-$c")
-  }
-}
-
-object CorrelationIdMiddleware {
   private[correlator] final val MdcKey: String = "cid"
   private[correlator] final val logger: Logger = LoggerFactory.getLogger(getClass.getName)
 
   final val defaultHeaderName: String = "X-Correlation-ID"
+
   final val defaultLogStartRequest: (String, Request[Task]) => Task[Unit] = (cid, req) =>
-    Task(logger.debug(s"TOTO - Starting request with id: $cid, to: ${req.uri.path}"))
+    Task(logger.debug(s"Starting request with id: $cid, to: ${req.uri.path}"))
 
-  def init(implicit runtime: Runtime[_]): Task[CorrelationIdMiddleware] = init(defaultHeaderName, defaultLogStartRequest)
+  final val defaultIdGenerator: URIO[Random, String] =
+    ZIO.accessM[Random] { random =>
+      val randomUpperCaseChar: UIO[Char] = random.random.nextInt(91 - 65).map(r => (r + 65).toChar)
+      val segment: UIO[String]           = (1 to 3).toList.traverse(_ => randomUpperCaseChar).map(_.mkString)
+      (segment, segment, segment).mapN((a, b, c) => s"$a-$b-$c")
+    }
 
-  def init(headerName: String, logStartRequest: (String, Request[Task]) => Task[Unit])(implicit runtime: Runtime[_]): Task[CorrelationIdMiddleware] =
-    for {
-      fiber <- FiberRef.make[ju.Map[String, String]](new ju.HashMap())
-      _ <- Task {
-        val field = classOf[MDC].getDeclaredField("mdcAdapter")
-        field.setAccessible(true)
-        field.set(null, new ZioMDCAdapter(fiber))
-      }
-    } yield new CorrelationIdMiddleware(headerName, logStartRequest)
+  final val getCorrelationId: Task[Option[String]] = Task(Option(MDC.get(MdcKey)))
 
-  val getCorrelationId: Task[Option[String]] = Task(Option(MDC.get(MdcKey)))
+  @silent("parameter value zioMDCAdapter in method addTo is never used")
+  def addTo[R <: Random](
+    headerName: String = defaultHeaderName,
+    logStartRequest: (String, Request[Task]) => Task[Unit] = defaultLogStartRequest,
+    idGenerator: RIO[R, String] = defaultIdGenerator
+  )(service: HttpRoutes[Task])(implicit runtime: Runtime[R], zioMDCAdapter: ZioMDCAdapter): HttpRoutes[Task] =
+    Kleisli { req: Request[Task] =>
+      val cidM: Task[String] =
+        req.headers.get(CaseInsensitiveString(headerName)).fold(idGenerator.asInstanceOf[Task[String]])(_.value.pure[Task])
+
+      val setupAndService: Task[Option[Response[Task]]] =
+        for {
+          cid <- cidM
+          _   <- ZIO(MDC.put(MdcKey, cid))
+          _   <- logStartRequest(cid, req)
+          r   <- service(req).value
+        } yield r
+
+      OptionT(setupAndService.ensuring(Task(MDC.remove(MdcKey)).orElse(URIO.unit)))
+    }
 }
 
 /**
-  * Based on [[https://olegpy.com/better-logging-monix-1/]]. Makes the current correlation id available for logback
-  * loggers.
-  */
-final class ZioMDCAdapter[+R](fiber: FiberRef[ju.Map[String, String]])(implicit runtime: Runtime[R]) extends LogbackMDCAdapter {
+ * Based on [[https://olegpy.com/better-logging-monix-1/]]. Makes the current correlation id available for logback
+ * loggers.
+ */
+final class ZioMDCAdapter private[correlator] (fiber: FiberRef[ju.Map[String, String]])(implicit runtime: Runtime[_])
+    extends LogbackMDCAdapter {
   override def get(key: String): String = runtime.unsafeRun { fiber.get.map(_.get(key)) }
 
   override def put(key: String, `val`: String): Unit =
@@ -97,4 +88,17 @@ final class ZioMDCAdapter[+R](fiber: FiberRef[ju.Map[String, String]])(implicit 
   override def getPropertyMap: ju.Map[String, String] = runtime.unsafeRun { fiber.get }
 
   override def getKeys: ju.Set[String] = runtime.unsafeRun { fiber.get.map(_.keySet()) }
+}
+
+object ZioMDCAdapter {
+  def init(implicit runtime: Runtime[_]): Task[ZioMDCAdapter] =
+    for {
+      fiber <- FiberRef.make[ju.Map[String, String]](new ju.HashMap())
+    } yield {
+      val adapter = new ZioMDCAdapter(fiber)
+      val field   = classOf[MDC].getDeclaredField("mdcAdapter")
+      field.setAccessible(true)
+      field.set(null, adapter)
+      adapter
+    }
 }

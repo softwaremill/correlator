@@ -4,9 +4,9 @@ import java.util.concurrent.ConcurrentLinkedQueue
 
 import org.http4s._
 import org.http4s.dsl.Http4sDsl
-import org.scalatest.{FlatSpec, Matchers}
-import org.slf4j.{Logger, LoggerFactory}
-import zio.{DefaultRuntime, Task, ZEnv, ZIO}
+import org.scalatest.{ FlatSpec, Matchers }
+import org.slf4j.{ Logger, LoggerFactory }
+import zio.{ DefaultRuntime, Task, ZEnv, ZIO }
 
 import scala.collection.JavaConverters._
 
@@ -24,9 +24,9 @@ class CorrelationIdTest extends FlatSpec with Matchers {
 
     val app: ZIO[ZEnv, Throwable, HttpRoutes[Task]] =
       for {
-        implicit0(runtime: zio.Runtime[ZEnv])            <- ZIO.runtime[ZEnv]
-        correlationIdMiddleware: CorrelationIdMiddleware <- CorrelationIdMiddleware.init
-      } yield correlationIdMiddleware.addTo(routes)
+        implicit0(runtime: zio.Runtime[ZEnv])   <- ZIO.runtime[ZEnv]
+        implicit0(zioMDCAdapter: ZioMDCAdapter) <- ZioMDCAdapter.init
+      } yield CorrelationIdMiddleware.addTo()(routes)
 
     // when
     val response: ZIO[ZEnv, Throwable, Option[Response[Task]]] = app.flatMap(_.apply(request).value)
@@ -46,9 +46,9 @@ class CorrelationIdTest extends FlatSpec with Matchers {
 
     val app: ZIO[ZEnv, Throwable, HttpRoutes[Task]] =
       for {
-        implicit0(runtime: zio.Runtime[ZEnv])            <- ZIO.runtime[ZEnv]
-        correlationIdMiddleware: CorrelationIdMiddleware <- CorrelationIdMiddleware.init
-      } yield correlationIdMiddleware.addTo(routes)
+        implicit0(runtime: zio.Runtime[ZEnv])   <- ZIO.runtime[ZEnv]
+        implicit0(zioMDCAdapter: ZioMDCAdapter) <- ZioMDCAdapter.init
+      } yield CorrelationIdMiddleware.addTo()(routes)
 
     // when
     val response: ZIO[ZEnv, Throwable, Option[Response[Task]]] = app.flatMap(_.apply(request).value)
@@ -62,7 +62,7 @@ class CorrelationIdTest extends FlatSpec with Matchers {
   trait Fixture {
     import zio.interop.catz._
 
-    val seenCids = new ConcurrentLinkedQueue[Option[String]]()
+    val seenCids                         = new ConcurrentLinkedQueue[Option[String]]()
     implicit val runtime: DefaultRuntime = new DefaultRuntime {}
 
     val routes: HttpRoutes[Task] = HttpRoutes.of[Task] {
