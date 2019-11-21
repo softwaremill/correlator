@@ -122,7 +122,6 @@ object ZioMDC {
   trait ZioMDCLive extends ZioMDC {
     val runtime: Runtime[Any]
 
-    @accessible
     final val newsletter: Service = new ZioMDC.Service {
       override def get(key: String): String = ???
 
