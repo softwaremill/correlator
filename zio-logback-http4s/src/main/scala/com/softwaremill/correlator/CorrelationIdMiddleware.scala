@@ -4,12 +4,13 @@ import java.{ util => ju }
 
 import cats.data.{ Kleisli, OptionT }
 import ch.qos.logback.classic.util.LogbackMDCAdapter
+import com.github.ghik.silencer.silent
 import org.http4s.util.CaseInsensitiveString
 import org.http4s.{ HttpRoutes, Request, Response }
 import org.slf4j.{ Logger, LoggerFactory, MDC }
+import zio.macros.annotation.accessible
 import zio.random.Random
 import zio.{ FiberRef, RIO, Runtime, Task, UIO, URIO, ZIO }
-import com.github.ghik.silencer.silent
 
 object CorrelationIdMiddleware {
   import cats.implicits._
@@ -33,11 +34,11 @@ object CorrelationIdMiddleware {
   final val getCorrelationId: Task[Option[String]] = Task(Option(MDC.get(MdcKey)))
 
   @silent("parameter value zioMDCAdapter in method addTo is never used")
-  def addTo[R <: Random](
+  def addTo[R <: Random with ZioMDC](
     headerName: String = defaultHeaderName,
     logStartRequest: (String, Request[Task]) => Task[Unit] = defaultLogStartRequest,
     idGenerator: RIO[R, String] = defaultIdGenerator
-  )(service: HttpRoutes[Task])(implicit zioMDCAdapter: ZioMDCAdapter): HttpRoutes[Task] =
+  )(service: HttpRoutes[Task]): HttpRoutes[Task] =
     Kleisli { req: Request[Task] =>
       val cidM: Task[String] =
         req.headers.get(CaseInsensitiveString(headerName)).fold(idGenerator.asInstanceOf[Task[String]])(_.value.pure[Task])
@@ -101,4 +102,43 @@ object ZioMDCAdapter {
       field.set(null, adapter)
       adapter
     }
+}
+
+trait ZioMDC {
+  def mdc: ZioMDC.Service
+}
+object ZioMDC {
+  trait Service {
+    def get(key: String): String
+    def put(key: String, `val`: String): Unit
+    def remove(key: String): Unit
+    def clear(): Unit
+    def getCopyOfContextMap: ju.HashMap[String, String]
+    def setContextMap(contextMap: ju.Map[String, String]): Unit
+    def getPropertyMap: ju.Map[String, String]
+    def getKeys: ju.Set[String]
+  }
+
+  trait ZioMDCLive extends ZioMDC {
+    val runtime: Runtime[Any]
+
+    @accessible
+    final val newsletter: Service = new ZioMDC.Service {
+      override def get(key: String): String = ???
+
+      override def put(key: String, `val`: String): Unit = ???
+
+      override def remove(key: String): Unit = ???
+
+      override def clear(): Unit = ???
+
+      override def getCopyOfContextMap: ju.HashMap[String, String] = ???
+
+      override def setContextMap(contextMap: ju.Map[String, String]): Unit = ???
+
+      override def getPropertyMap: ju.Map[String, String] = ???
+
+      override def getKeys: ju.Set[String] = ???
+    }
+  }
 }

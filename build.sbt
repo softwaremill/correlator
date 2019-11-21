@@ -39,17 +39,14 @@ lazy val monixLogbackHttp4s: Project = (project in file("monix-logback-http4s"))
 
 lazy val zioLogbackHttp4s: Project = (project in file("zio-logback-http4s"))
   .settings(commonSettings: _*)
+  .settings(name := "zio-logback-http4s")
   .settings(
-    libraryDependencies ++= Seq(
-      compilerPlugin("com.github.ghik" % "silencer-plugin" % "1.4.4" cross CrossVersion.full),
-      "com.github.ghik" % "silencer-lib" % "1.4.4" % Provided cross CrossVersion.full
-    )
-  )
-  .settings(
-    name := "zio-logback-http4s",
     libraryDependencies ++= Seq(
       "dev.zio" %% "zio" % "1.0.0-RC17",
       "dev.zio" %% "zio-interop-cats" % "2.0.0.0-RC8",
+      "dev.zio" %% "zio-macros-core" % "0.5.0",
+      compilerPlugin("com.github.ghik" % "silencer-plugin" % "1.4.4" cross CrossVersion.full),
+      "com.github.ghik" % "silencer-lib" % "1.4.4" % Provided cross CrossVersion.full,
       logback,
       scalaTest
     ) ++ http4s
