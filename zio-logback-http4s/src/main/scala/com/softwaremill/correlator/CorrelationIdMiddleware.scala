@@ -122,7 +122,7 @@ object ZioMDC {
   trait ZioMDCLive extends ZioMDC {
     val runtime: Runtime[Any]
 
-    final val newsletter: Service = new ZioMDC.Service {
+    final val mdc: Service = new ZioMDC.Service {
       override def get(key: String): String = ???
 
       override def put(key: String, `val`: String): Unit = ???
