@@ -7,8 +7,7 @@ import ch.qos.logback.classic.util.LogbackMDCAdapter
 import com.github.ghik.silencer.silent
 import org.http4s.util.CaseInsensitiveString
 import org.http4s.{ HttpRoutes, Request, Response }
-import org.slf4j.{ Logger, LoggerFactory, MDC }
-import zio.macros.annotation.accessible
+import org.slf4j.{ Logger, LoggerFactory }
 import zio.random.Random
 import zio.{ FiberRef, RIO, Runtime, Task, UIO, URIO, ZIO }
 
@@ -31,10 +30,10 @@ object CorrelationIdMiddleware {
       (segment, segment, segment).mapN((a, b, c) => s"$a-$b-$c")
     }
 
-  final val getCorrelationId: Task[Option[String]] = Task(Option(MDC.get(MdcKey)))
+  final val getCorrelationId: Task[Option[String]] = Task(Option(org.slf4j.MDC.get(MdcKey)))
 
   @silent("parameter value zioMDCAdapter in method addTo is never used")
-  def addTo[R <: Random with ZioMDC](
+  def addTo[R <: Random with MDC](
     headerName: String = defaultHeaderName,
     logStartRequest: (String, Request[Task]) => Task[Unit] = defaultLogStartRequest,
     idGenerator: RIO[R, String] = defaultIdGenerator
@@ -46,12 +45,12 @@ object CorrelationIdMiddleware {
       val setupAndService: Task[Option[Response[Task]]] =
         for {
           cid <- cidM
-          _   <- ZIO(MDC.put(MdcKey, cid))
+          _   <- ZIO(org.slf4j.MDC.put(MdcKey, cid))
           _   <- logStartRequest(cid, req)
           r   <- service(req).value
         } yield r
 
-      OptionT(setupAndService.ensuring(Task(MDC.remove(MdcKey)).orElse(URIO.unit)))
+      OptionT(setupAndService.ensuring(Task(org.slf4j.MDC.remove(MdcKey)).orElse(URIO.unit)))
     }
 }
 
@@ -97,17 +96,17 @@ object ZioMDCAdapter {
       fiber   <- FiberRef.make[ju.Map[String, String]](new ju.HashMap())
     } yield {
       val adapter = new ZioMDCAdapter(fiber, runtime)
-      val field   = classOf[MDC].getDeclaredField("mdcAdapter")
+      val field   = classOf[org.slf4j.MDC].getDeclaredField("mdcAdapter")
       field.setAccessible(true)
       field.set(null, adapter)
       adapter
     }
 }
 
-trait ZioMDC {
-  def mdc: ZioMDC.Service
+trait MDC {
+  def mdc: MDC.Service
 }
-object ZioMDC {
+object MDC {
   trait Service {
     def get(key: String): String
     def put(key: String, `val`: String): Unit
@@ -119,10 +118,10 @@ object ZioMDC {
     def getKeys: ju.Set[String]
   }
 
-  trait ZioMDCLive extends ZioMDC {
+  trait MDCLive extends MDC {
     val runtime: Runtime[Any]
 
-    final val mdc: Service = new ZioMDC.Service {
+    final val mdc: Service = new MDC.Service {
       override def get(key: String): String = ???
 
       override def put(key: String, `val`: String): Unit = ???
