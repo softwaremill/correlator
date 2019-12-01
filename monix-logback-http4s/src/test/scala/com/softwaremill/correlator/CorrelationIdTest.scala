@@ -5,13 +5,14 @@ import java.util.concurrent.ConcurrentLinkedQueue
 import monix.eval.Task
 import org.http4s._
 import org.http4s.dsl.Http4sDsl
-import org.scalatest.{FlatSpec, Matchers}
 import monix.execution.Scheduler.Implicits.global
 import org.slf4j.{Logger, LoggerFactory}
 import org.http4s.implicits._
 import scala.collection.JavaConverters._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class CorrelationIdTest extends FlatSpec with Matchers {
+class CorrelationIdTest extends AnyFlatSpec with Matchers {
   TestCorrelationId.init()
 
   private val logger: Logger = LoggerFactory.getLogger(getClass.getName)
