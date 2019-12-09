@@ -30,6 +30,8 @@ class CorrelationId(
 
   def apply(): Task[Option[String]] = Task(Option(MDC.get(MdcKey)))
 
+  def applySync(): Option[String] = Option(MDC.get(MdcKey))
+
   def setCorrelationIdMiddleware(service: HttpRoutes[Task]): HttpRoutes[Task] = Kleisli { req: Request[Task] =>
     val cid = req.headers.get(CaseInsensitiveString(headerName)) match {
       case None            => newCorrelationId()
