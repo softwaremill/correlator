@@ -8,7 +8,7 @@ Currently supports [monix](https://monix.io), [http4s](https://http4s.org) & [lo
 
 Usage:
 
-* add the dependency: `"com.softwaremill.correlator" %% "monix-logback-http4s" % "0.1.6"` to your project
+* add the dependency: `"com.softwaremill.correlator" %% "monix-logback-http4s" % "0.1.7"` to your project
 * create an object extending the `CorrelationId` class, e.g. `object MyCorrelationId extends CorrelationId()`
 * call `MyCorrelationId.init()` immediately after your program starts (in the `main()` method)
 * wrap your `HttpRoutes[Task]` with `MyCorrelationId.setCorrelationIdMiddleware`, so that a correlation id is
