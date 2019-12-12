@@ -19,7 +19,8 @@ import scala.util.Random
 class CorrelationId(
     val headerName: String = "X-Correlation-ID",
     logStartRequest: (String, Request[Task]) => Task[Unit] = (cid, req) =>
-      Task(CorrelationId.logger.debug(s"Starting request with id: $cid, to: ${req.uri.path}"))
+      Task(CorrelationId.logger.debug(s"Starting request with id: $cid, to: ${req.uri.path}")),
+    newCorrelationId: () => String = CorrelationId.DefaultGenerator
 ) {
   System.setProperty("monix.environment.localContextPropagation", "1")
   def init(): Unit = {
@@ -46,18 +47,18 @@ class CorrelationId(
 
     OptionT(setupAndService.guarantee(Task(MDC.remove(MdcKey))))
   }
-
-  private val random = new Random()
-
-  private def newCorrelationId(): String = {
-    def randomUpperCaseChar() = (random.nextInt(91 - 65) + 65).toChar
-    def segment = (1 to 3).map(_ => randomUpperCaseChar()).mkString
-    s"$segment-$segment-$segment"
-  }
 }
 
 object CorrelationId {
   val logger: Logger = LoggerFactory.getLogger(getClass.getName)
+
+  private val random = new Random()
+
+  val DefaultGenerator: () => String = { () =>
+    def randomUpperCaseChar() = (random.nextInt(91 - 65) + 65).toChar
+    def segment = (1 to 3).map(_ => randomUpperCaseChar()).mkString
+    s"$segment-$segment-$segment"
+  }
 }
 
 /**

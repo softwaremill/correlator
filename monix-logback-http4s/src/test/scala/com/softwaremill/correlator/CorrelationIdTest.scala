@@ -8,7 +8,6 @@ import org.http4s.dsl.Http4sDsl
 import org.scalatest.{FlatSpec, Matchers}
 import monix.execution.Scheduler.Implicits.global
 import org.slf4j.{Logger, LoggerFactory}
-import org.http4s.implicits._
 import scala.collection.JavaConverters._
 
 class CorrelationIdTest extends FlatSpec with Matchers {
