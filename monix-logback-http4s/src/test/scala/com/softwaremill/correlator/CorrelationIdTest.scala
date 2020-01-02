@@ -40,7 +40,7 @@ class CorrelationIdTest extends AnyFlatSpec with Matchers {
     // given
     val testCid = "some-cid"
     val request =
-      Request[Task](method = GET, uri = uri"/test", headers = Headers.of(Header(correlator.Http4sCorrelationWrapper.HeaderName, testCid)))
+      Request[Task](method = GET, uri = uri"/test", headers = Headers.of(Header(Http4sCorrelationWrapper.HeaderName, testCid)))
 
     // when
     val response = Http4sCorrelationWrapper(TestCorrelationId).setCorrelationIdMiddleware(routes).apply(request).value.runSyncUnsafe().get
