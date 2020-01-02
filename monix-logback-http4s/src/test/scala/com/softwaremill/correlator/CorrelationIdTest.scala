@@ -7,12 +7,12 @@ import org.http4s._
 import org.http4s.dsl.Http4sDsl
 import monix.execution.Scheduler.Implicits.global
 import org.slf4j.{Logger, LoggerFactory}
-
+import org.http4s.implicits._
 import scala.collection.JavaConverters._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import Http4s._
 import com.softwaremill.correlator
+import Http4sCorrelationWrapper._
 
 class CorrelationIdTest extends AnyFlatSpec with Matchers {
   TestCorrelationId.init()
@@ -27,7 +27,7 @@ class CorrelationIdTest extends AnyFlatSpec with Matchers {
     val request = Request[Task](method = GET, uri = uri"/test")
 
     // when
-    val response = TestCorrelationId.setCorrelationIdMiddleware(routes).apply(request).value.runSyncUnsafe().get
+    val response = Http4sCorrelationWrapper(TestCorrelationId).setCorrelationIdMiddleware(routes).apply(request).value.runSyncUnsafe().get
 
     //then
     response.status shouldBe Status.Ok
@@ -40,10 +40,10 @@ class CorrelationIdTest extends AnyFlatSpec with Matchers {
     // given
     val testCid = "some-cid"
     val request =
-      Request[Task](method = GET, uri = uri"/test", headers = Headers.of(Header(correlator.Http4s.HeaderName, testCid)))
+      Request[Task](method = GET, uri = uri"/test", headers = Headers.of(Header(correlator.Http4sCorrelationWrapper.HeaderName, testCid)))
 
     // when
-    val response = TestCorrelationId.setCorrelationIdMiddleware(routes).apply(request).value.runSyncUnsafe().get
+    val response = Http4sCorrelationWrapper(TestCorrelationId).setCorrelationIdMiddleware(routes).apply(request).value.runSyncUnsafe().get
 
     //then
     response.status shouldBe Status.Ok

@@ -28,16 +28,16 @@ class CorrelationId(newCorrelationId: () => String = CorrelationId.DefaultGenera
   def applySync(): Option[String] = Option(MDC.get(MdcKey))
 
   def setCorrelationIdMiddleware[T, R](
-                                        service: Kleisli[OptionT[Task, *], T, R]
-                                      )(implicit awareness: CorrelationIdAware[T]): Kleisli[OptionT[Task, *], T, R] = Kleisli { req: T =>
+                                        service: Kleisli[Task, T, R]
+                                      )(implicit awareness: CorrelationIdAware[T]): Kleisli[Task, T, R] = Kleisli { req: T =>
     val cid = awareness.extractCid(req).getOrElse(newCorrelationId())
 
     val setupAndService = for {
       _ <- Task(MDC.put(MdcKey, cid))
-      r <- service(req).value
+      r <- service(req)
     } yield r
 
-    OptionT(setupAndService.guarantee(Task(MDC.remove(MdcKey))))
+    setupAndService.guarantee(Task(MDC.remove(MdcKey)))
   }
 }
 
