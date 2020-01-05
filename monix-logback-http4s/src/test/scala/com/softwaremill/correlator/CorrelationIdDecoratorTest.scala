@@ -12,10 +12,10 @@ import scala.collection.JavaConverters._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import com.softwaremill.correlator
-import Http4sCorrelationWrapper._
+import Http4sCorrelationMiddleware._
 
-class CorrelationIdTest extends AnyFlatSpec with Matchers {
-  TestCorrelationId.init()
+class CorrelationIdDecoratorTest extends AnyFlatSpec with Matchers {
+  TestCorrelationIdDecorator.init()
 
   private val logger: Logger = LoggerFactory.getLogger(getClass.getName)
 
@@ -27,7 +27,7 @@ class CorrelationIdTest extends AnyFlatSpec with Matchers {
     val request = Request[Task](method = GET, uri = uri"/test")
 
     // when
-    val response = Http4sCorrelationWrapper(TestCorrelationId).setCorrelationIdMiddleware(routes).apply(request).value.runSyncUnsafe().get
+    val response = Http4sCorrelationMiddleware(TestCorrelationIdDecorator).setCorrelationIdMiddleware(routes).apply(request).value.runSyncUnsafe().get
 
     //then
     response.status shouldBe Status.Ok
@@ -40,10 +40,10 @@ class CorrelationIdTest extends AnyFlatSpec with Matchers {
     // given
     val testCid = "some-cid"
     val request =
-      Request[Task](method = GET, uri = uri"/test", headers = Headers.of(Header(Http4sCorrelationWrapper.HeaderName, testCid)))
+      Request[Task](method = GET, uri = uri"/test", headers = Headers.of(Header(Http4sCorrelationMiddleware.HeaderName, testCid)))
 
     // when
-    val response = Http4sCorrelationWrapper(TestCorrelationId).setCorrelationIdMiddleware(routes).apply(request).value.runSyncUnsafe().get
+    val response = Http4sCorrelationMiddleware(TestCorrelationIdDecorator).setCorrelationIdMiddleware(routes).apply(request).value.runSyncUnsafe().get
 
     //then
     response.status shouldBe Status.Ok
@@ -56,7 +56,7 @@ class CorrelationIdTest extends AnyFlatSpec with Matchers {
 
     val routes: HttpRoutes[Task] = HttpRoutes.of[Task] {
       case _ =>
-        TestCorrelationId().asyncBoundary
+        TestCorrelationIdDecorator().asyncBoundary
           .flatMap(cid => Task.eval(seenCids.add(cid)))
           .flatMap(_ => Task.eval(logger.info("Hello!")))
           .map(_ => Response[Task](Status.Ok))
@@ -64,4 +64,4 @@ class CorrelationIdTest extends AnyFlatSpec with Matchers {
   }
 }
 
-object TestCorrelationId extends CorrelationId()
+object TestCorrelationIdDecorator extends CorrelationIdDecorator()

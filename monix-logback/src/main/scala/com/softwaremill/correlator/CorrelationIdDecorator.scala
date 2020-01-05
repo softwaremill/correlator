@@ -2,9 +2,9 @@ package com.softwaremill.correlator
 
 import java.{util => ju}
 
-import cats.data.{Kleisli, OptionT}
+import cats.data.Kleisli
 import ch.qos.logback.classic.util.LogbackMDCAdapter
-import com.softwaremill.correlator.CorrelationId._
+import com.softwaremill.correlator.CorrelationIdDecorator._
 import monix.eval.Task
 import monix.execution.misc.Local
 import org.slf4j.{Logger, LoggerFactory, MDC}
@@ -12,10 +12,10 @@ import org.slf4j.{Logger, LoggerFactory, MDC}
 import scala.util.Random
 
 /**
- * Correlation id support. The `init()` method should be called when the application starts.
- * See [[https://blog.softwaremill.com/correlation-ids-in-scala-using-monix-3aa11783db81]] for details.
- */
-class CorrelationId(newCorrelationId: () => String = CorrelationId.DefaultGenerator) {
+  * Correlation id support. The `init()` method should be called when the application starts.
+  * See [[https://blog.softwaremill.com/correlation-ids-in-scala-using-monix-3aa11783db81]] for details.
+  */
+class CorrelationIdDecorator(newCorrelationId: () => String = CorrelationIdDecorator.DefaultGenerator) {
 
   def init(): Unit = {
     MonixMDCAdapter.init()
@@ -27,21 +27,20 @@ class CorrelationId(newCorrelationId: () => String = CorrelationId.DefaultGenera
 
   def applySync(): Option[String] = Option(MDC.get(MdcKey))
 
-  def setCorrelationIdMiddleware[T, R](
-                                        service: Kleisli[Task, T, R]
-                                      )(implicit awareness: CorrelationIdAware[T]): Kleisli[Task, T, R] = Kleisli { req: T =>
-    val cid = awareness.extractCid(req).getOrElse(newCorrelationId())
+  def withCorrelationId[T, R](service: T => Task[R])(implicit source: CorrelationIdSource[T]): Kleisli[Task, T, R] = Kleisli {
+    req: T =>
+      val cid = source.extractCid(req).getOrElse(newCorrelationId())
 
-    val setupAndService = for {
-      _ <- Task(MDC.put(MdcKey, cid))
-      r <- service(req)
-    } yield r
+      val setupAndService = for {
+        _ <- Task(MDC.put(MdcKey, cid))
+        r <- service(req)
+      } yield r
 
-    setupAndService.guarantee(Task(MDC.remove(MdcKey)))
+      setupAndService.guarantee(Task(MDC.remove(MdcKey)))
   }
 }
 
-object CorrelationId {
+object CorrelationIdDecorator {
   val logger: Logger = LoggerFactory.getLogger(getClass.getName)
 
   private val random = new Random()
@@ -52,15 +51,15 @@ object CorrelationId {
     s"$segment-$segment-$segment"
   }
 
-  trait CorrelationIdAware[T] {
+  trait CorrelationIdSource[T] {
     def extractCid(t: T): Option[String]
   }
 }
 
 /**
- * Based on [[https://olegpy.com/better-logging-monix-1/]]. Makes the current correlation id available for logback
- * loggers.
- */
+  * Based on [[https://olegpy.com/better-logging-monix-1/]]. Makes the current correlation id available for logback
+  * loggers.
+  */
 class MonixMDCAdapter extends LogbackMDCAdapter {
   private[this] val map = Local[ju.Map[String, String]](ju.Collections.emptyMap())
 
