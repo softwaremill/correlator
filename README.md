@@ -17,7 +17,8 @@ extracted from the argument (using the defined `CorrelationIdSource`), or a new 
 * you can access the current correlation id (if any is set) using `MyCorrelationId.apply()` or `MyCorrelationId.applySync()`. 
 
 
-For [http4s](https://http4s.org) integration
+For [http4s](https://http4s.org) integration:
+
 * add the dependency: `"com.softwaremill.correlator" %% "monix-logback-http4s" % "0.1.7"` to your project
 * create an object extending the `CorrelationIdDecorator` class, e.g. `object MyCorrelationId extends CorrelationIdDecorator()`
 * call `MyCorrelationId.init()` immediately after your program starts (in the `main()` method)
