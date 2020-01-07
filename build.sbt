@@ -19,7 +19,7 @@ lazy val rootProject = (project in file("."))
     name := "root"
   )
   .settings(publishTravisSettings)
-  .aggregate(monixLogbackHttp4s)
+  .aggregate(monixLogback, monixLogbackHttp4s)
 
 
 // can be unified after 0.21 gets released
@@ -31,6 +31,16 @@ def http4sDependencies(scalaVersion: String): Seq[sbt.ModuleID] =
     Seq("org.http4s" %% "http4s-core" % "0.21.0-M6",
         "org.http4s" %% "http4s-dsl" % "0.21.0-M6" % "test")
 
+lazy val monixLogback : Project = (project in file("monix-logback"))
+  .settings(commonSettings: _*)
+  .settings(
+    name := "monix-logback",
+    libraryDependencies ++= Seq(
+      "io.monix" %% "monix" % "3.1.0",
+      "ch.qos.logback" % "logback-classic" % "1.2.3",
+      scalaTest)
+  )
+
 lazy val monixLogbackHttp4s: Project = (project in file("monix-logback-http4s"))
   .settings(commonSettings: _*)
   .settings(
@@ -39,6 +49,6 @@ lazy val monixLogbackHttp4s: Project = (project in file("monix-logback-http4s"))
       "io.monix" %% "monix" % "3.1.0",
       "ch.qos.logback" % "logback-classic" % "1.2.3",
       scalaTest) ++ http4sDependencies(scalaVersion.value)
-    )
+    ).dependsOn(monixLogback)
 
 
