@@ -25,3 +25,21 @@ For [http4s](https://http4s.org) integration:
 * wrap your `HttpRoutes[Task]` with `Http4sCorrelationMiddleware(MyCorrelationId).setCorrelationIdMiddleware`, so that a correlation id is
 extracted from the request (using the provided header name), or a new one is created.
 * you can access the current correlation id (if any is set) using `MyCorrelationId.apply()` or `MyCorrelationId.applySync()`.
+
+Logging each request with corresponding correlationId can be done in following way:
+```scala
+def loggingMiddleware[T, R](
+                           service: HttpRoutes[Task],
+                           logStartRequest: Request[Task] => Task[Unit] = req =>
+                             Task(MyLogger.debug(s"Starting request to: ${req.uri.path}"))
+                         ): HttpRoutes[Task] = Kleisli{ req: Request[Task] =>
+    val setupAndService = for {
+      _ <- logStartRequest(req)
+      r <- service(req).value
+    } yield r
+    OptionT(setupAndService)
+}
+
+val middleware = Http4sCorrelationMiddleware(correlationIdDecorator)
+middleware.withCorrelationId(loggingMiddleware(service))
+```
