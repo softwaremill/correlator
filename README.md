@@ -8,7 +8,7 @@ Currently supports [monix](https://monix.io) & [logback](https://logback.qos.ch)
 
 Generic usage:
 
-* add the dependency: `"com.softwaremill.correlator" %% "monix-logback-http4s" % "0.1.7"` to your project
+* add the dependency: `"com.softwaremill.correlator" %% "monix-logback-http4s" % "0.1.8"` to your project
 * create an object extending the `CorrelationIdDecorator` class, e.g. `object MyCorrelationId extends CorrelationIdDecorator()`
 * call `MyCorrelationId.init()` immediately after your program starts (in the `main()` method)
 * create an implicit instance of `CorrelationIdSource` for given `T` from which you want to extract correlation id
@@ -19,7 +19,7 @@ extracted from the argument (using the defined `CorrelationIdSource`), or a new 
 
 For [http4s](https://http4s.org) integration:
 
-* add the dependency: `"com.softwaremill.correlator" %% "monix-logback-http4s" % "0.1.7"` to your project
+* add the dependency: `"com.softwaremill.correlator" %% "monix-logback-http4s" % "0.1.8"` to your project
 * create an object extending the `CorrelationIdDecorator` class, e.g. `object MyCorrelationId extends CorrelationIdDecorator()`
 * call `MyCorrelationId.init()` immediately after your program starts (in the `main()` method)
 * wrap your `HttpRoutes[Task]` with `Http4sCorrelationMiddleware(MyCorrelationId).withCorrelationId`, so that a correlation id is
