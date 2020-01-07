@@ -2,7 +2,6 @@ package com.softwaremill.correlator
 
 import java.{util => ju}
 
-import cats.data.Kleisli
 import ch.qos.logback.classic.util.LogbackMDCAdapter
 import com.softwaremill.correlator.CorrelationIdDecorator._
 import monix.eval.Task
@@ -27,16 +26,15 @@ class CorrelationIdDecorator(newCorrelationId: () => String = CorrelationIdDecor
 
   def applySync(): Option[String] = Option(MDC.get(MdcKey))
 
-  def withCorrelationId[T, R](service: T => Task[R])(implicit source: CorrelationIdSource[T]): Kleisli[Task, T, R] = Kleisli {
-    req: T =>
-      val cid = source.extractCid(req).getOrElse(newCorrelationId())
+  def withCorrelationId[T, R](service: T => Task[R])(implicit source: CorrelationIdSource[T]): T => Task[R] = { req: T =>
+    val cid = source.extractCid(req).getOrElse(newCorrelationId())
 
-      val setupAndService = for {
-        _ <- Task(MDC.put(MdcKey, cid))
-        r <- service(req)
-      } yield r
+    val setupAndService = for {
+      _ <- Task(MDC.put(MdcKey, cid))
+      r <- service(req)
+    } yield r
 
-      setupAndService.guarantee(Task(MDC.remove(MdcKey)))
+    setupAndService.guarantee(Task(MDC.remove(MdcKey)))
   }
 }
 

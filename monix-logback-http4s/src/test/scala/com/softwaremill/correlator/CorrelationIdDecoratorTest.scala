@@ -27,7 +27,7 @@ class CorrelationIdDecoratorTest extends AnyFlatSpec with Matchers {
     val request = Request[Task](method = GET, uri = uri"/test")
 
     // when
-    val response = Http4sCorrelationMiddleware(TestCorrelationIdDecorator).setCorrelationIdMiddleware(routes).apply(request).value.runSyncUnsafe().get
+    val response = Http4sCorrelationMiddleware(TestCorrelationIdDecorator).withCorrelationId(routes).apply(request).value.runSyncUnsafe().get
 
     //then
     response.status shouldBe Status.Ok
@@ -43,7 +43,7 @@ class CorrelationIdDecoratorTest extends AnyFlatSpec with Matchers {
       Request[Task](method = GET, uri = uri"/test", headers = Headers.of(Header(Http4sCorrelationMiddleware.HeaderName, testCid)))
 
     // when
-    val response = Http4sCorrelationMiddleware(TestCorrelationIdDecorator).setCorrelationIdMiddleware(routes).apply(request).value.runSyncUnsafe().get
+    val response = Http4sCorrelationMiddleware(TestCorrelationIdDecorator).withCorrelationId(routes).apply(request).value.runSyncUnsafe().get
 
     //then
     response.status shouldBe Status.Ok

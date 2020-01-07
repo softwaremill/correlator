@@ -22,7 +22,7 @@ For [http4s](https://http4s.org) integration:
 * add the dependency: `"com.softwaremill.correlator" %% "monix-logback-http4s" % "0.1.7"` to your project
 * create an object extending the `CorrelationIdDecorator` class, e.g. `object MyCorrelationId extends CorrelationIdDecorator()`
 * call `MyCorrelationId.init()` immediately after your program starts (in the `main()` method)
-* wrap your `HttpRoutes[Task]` with `Http4sCorrelationMiddleware(MyCorrelationId).setCorrelationIdMiddleware`, so that a correlation id is
+* wrap your `HttpRoutes[Task]` with `Http4sCorrelationMiddleware(MyCorrelationId).withCorrelationId`, so that a correlation id is
 extracted from the request (using the provided header name), or a new one is created.
 * you can access the current correlation id (if any is set) using `MyCorrelationId.apply()` or `MyCorrelationId.applySync()`.
 

@@ -8,11 +8,11 @@ import org.http4s.util.CaseInsensitiveString
 
 class Http4sCorrelationMiddleware(correlationId: CorrelationIdDecorator) {
 
-  def setCorrelationIdMiddleware[T, R](
+  def withCorrelationId[T, R](
       service: Kleisli[OptionT[Task, *], T, R]
   )(implicit source: CorrelationIdSource[T]): Kleisli[OptionT[Task, *], T, R] = {
     val runOptionT: T => Task[Option[R]] = service.run.andThen(_.value)
-    correlationId.withCorrelationId[T, Option[R]](runOptionT).mapF(OptionT.apply)
+    Kleisli(correlationId.withCorrelationId[T, Option[R]](runOptionT).andThen(OptionT.apply))
   }
 }
 
