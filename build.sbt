@@ -25,8 +25,8 @@ lazy val rootProject = (project in file("."))
 // can be unified after 0.21 gets released
 def http4sDependencies(scalaVersion: String): Seq[sbt.ModuleID] =
   if (scalaVersion.startsWith("2.12"))
-    Seq("org.http4s" %% "http4s-core" % "0.21.3",
-        "org.http4s" %% "http4s-dsl" % "0.21.3" % "test")
+    Seq("org.http4s" %% "http4s-core" % "0.21.4",
+        "org.http4s" %% "http4s-dsl" % "0.21.4" % "test")
   else
     Seq("org.http4s" %% "http4s-core" % "0.21.0-RC5",
         "org.http4s" %% "http4s-dsl" % "0.21.0-RC5" % "test")
