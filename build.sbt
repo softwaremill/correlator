@@ -28,8 +28,8 @@ def http4sDependencies(scalaVersion: String): Seq[sbt.ModuleID] =
     Seq("org.http4s" %% "http4s-core" % "0.21.6",
         "org.http4s" %% "http4s-dsl" % "0.21.6" % "test")
   else
-    Seq("org.http4s" %% "http4s-core" % "0.21.0-RC5",
-        "org.http4s" %% "http4s-dsl" % "0.21.0-RC5" % "test")
+    Seq("org.http4s" %% "http4s-core" % "0.21.6+43-2c1c1172-SNAPSHOT",
+        "org.http4s" %% "http4s-dsl" % "0.21.6+43-2c1c1172-SNAPSHOT" % "test")
 
 lazy val monixLogback : Project = (project in file("monix-logback"))
   .settings(commonSettings: _*)
