@@ -11,7 +11,6 @@ import org.http4s.implicits._
 import scala.collection.JavaConverters._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import com.softwaremill.correlator
 import Http4sCorrelationMiddleware._
 
 class CorrelationIdDecoratorTest extends AnyFlatSpec with Matchers {
@@ -27,7 +26,8 @@ class CorrelationIdDecoratorTest extends AnyFlatSpec with Matchers {
     val request = Request[Task](method = GET, uri = uri"/test")
 
     // when
-    val response = Http4sCorrelationMiddleware(TestCorrelationIdDecorator).withCorrelationId(routes).apply(request).value.runSyncUnsafe().get
+    val response =
+      Http4sCorrelationMiddleware(TestCorrelationIdDecorator).withCorrelationId(routes).apply(request).value.runSyncUnsafe().get
 
     //then
     response.status shouldBe Status.Ok
@@ -43,7 +43,8 @@ class CorrelationIdDecoratorTest extends AnyFlatSpec with Matchers {
       Request[Task](method = GET, uri = uri"/test", headers = Headers.of(Header(Http4sCorrelationMiddleware.HeaderName, testCid)))
 
     // when
-    val response = Http4sCorrelationMiddleware(TestCorrelationIdDecorator).withCorrelationId(routes).apply(request).value.runSyncUnsafe().get
+    val response =
+      Http4sCorrelationMiddleware(TestCorrelationIdDecorator).withCorrelationId(routes).apply(request).value.runSyncUnsafe().get
 
     //then
     response.status shouldBe Status.Ok
@@ -54,12 +55,11 @@ class CorrelationIdDecoratorTest extends AnyFlatSpec with Matchers {
   trait Fixture {
     val seenCids = new ConcurrentLinkedQueue[Option[String]]()
 
-    val routes: HttpRoutes[Task] = HttpRoutes.of[Task] {
-      case _ =>
-        TestCorrelationIdDecorator().asyncBoundary
-          .flatMap(cid => Task.eval(seenCids.add(cid)))
-          .flatMap(_ => Task.eval(logger.info("Hello!")))
-          .map(_ => Response[Task](Status.Ok))
+    val routes: HttpRoutes[Task] = HttpRoutes.of[Task] { case _ =>
+      TestCorrelationIdDecorator().asyncBoundary
+        .flatMap(cid => Task.eval(seenCids.add(cid)))
+        .flatMap(_ => Task.eval(logger.info("Hello!")))
+        .map(_ => Response[Task](Status.Ok))
     }
   }
 }
