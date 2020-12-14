@@ -14,27 +14,25 @@ import scala.util.Random
   * Correlation id support. The `init()` method should be called when the application starts.
   * See [[https://blog.softwaremill.com/correlation-ids-in-scala-using-monix-3aa11783db81]] for details.
   */
-class CorrelationIdDecorator(newCorrelationId: () => String = CorrelationIdDecorator.DefaultGenerator) {
+class CorrelationIdDecorator(newCorrelationId: () => String = CorrelationIdDecorator.DefaultGenerator, mdcKey: String = "cid") {
 
   def init(): Unit = {
     MonixMDCAdapter.init()
   }
 
-  private val MdcKey = "cid"
+  def apply(): Task[Option[String]] = Task(Option(MDC.get(mdcKey)))
 
-  def apply(): Task[Option[String]] = Task(Option(MDC.get(MdcKey)))
-
-  def applySync(): Option[String] = Option(MDC.get(MdcKey))
+  def applySync(): Option[String] = Option(MDC.get(mdcKey))
 
   def withCorrelationId[T, R](service: T => Task[R])(implicit source: CorrelationIdSource[T]): T => Task[R] = { req: T =>
     val cid = source.extractCid(req).getOrElse(newCorrelationId())
 
     val setupAndService = for {
-      _ <- Task(MDC.put(MdcKey, cid))
+      _ <- Task(MDC.put(mdcKey, cid))
       r <- service(req)
     } yield r
 
-    setupAndService.guarantee(Task(MDC.remove(MdcKey)))
+    setupAndService.guarantee(Task(MDC.remove(mdcKey)))
   }
 }
 
