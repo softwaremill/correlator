@@ -1,7 +1,7 @@
 import com.softwaremill.PublishTravis.publishTravisSettings
 
-lazy val scala212 = "2.12.13"
-lazy val scala213 = "2.13.1"
+lazy val scala212 = "2.12.10"
+lazy val scala213 = "2.13.6"
 
 lazy val supportedScalaVersions = List(scala212, scala213)
 
@@ -10,7 +10,7 @@ lazy val commonSettings = commonSmlBuildSettings ++ ossPublishSettings ++ Seq(
   crossScalaVersions := supportedScalaVersions
 )
 
-val scalaTest = "org.scalatest" %% "scalatest" % "3.2.4" % "test"
+val scalaTest = "org.scalatest" %% "scalatest" % "3.2.9" % "test"
 
 lazy val rootProject = (project in file("."))
   .settings(commonSettings: _*)
@@ -25,7 +25,7 @@ lazy val monixLogback: Project = (project in file("monix-logback"))
   .settings(commonSettings: _*)
   .settings(
     name := "monix-logback",
-    libraryDependencies ++= Seq("io.monix" %% "monix" % "3.3.0", "ch.qos.logback" % "logback-classic" % "1.2.3", scalaTest)
+    libraryDependencies ++= Seq("io.monix" %% "monix" % "3.4.0", "ch.qos.logback" % "logback-classic" % "1.2.3", scalaTest)
   )
 
 lazy val monixLogbackHttp4s: Project = (project in file("monix-logback-http4s"))
@@ -33,10 +33,10 @@ lazy val monixLogbackHttp4s: Project = (project in file("monix-logback-http4s"))
   .settings(
     name := "monix-logback-http4s",
     libraryDependencies ++= Seq(
-      "io.monix" %% "monix" % "3.3.0",
+      "io.monix" %% "monix" % "3.4.0",
       "ch.qos.logback" % "logback-classic" % "1.2.3",
-      "org.http4s" %% "http4s-core" % "0.21.19",
-      "org.http4s" %% "http4s-dsl" % "0.21.19" % "test",
+      "org.http4s" %% "http4s-core" % "0.21.23",
+      "org.http4s" %% "http4s-dsl" % "0.21.23" % "test",
       scalaTest
     )
   )
