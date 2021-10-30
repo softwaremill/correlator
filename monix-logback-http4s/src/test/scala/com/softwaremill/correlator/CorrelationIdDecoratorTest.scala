@@ -29,7 +29,7 @@ class CorrelationIdDecoratorTest extends AnyFlatSpec with Matchers {
     val response =
       Http4sCorrelationMiddleware(TestCorrelationIdDecorator).withCorrelationId(routes).apply(request).value.runSyncUnsafe().get
 
-    //then
+    // then
     response.status shouldBe Status.Ok
 
     seenCids.asScala.toList should have size (1)
@@ -46,7 +46,7 @@ class CorrelationIdDecoratorTest extends AnyFlatSpec with Matchers {
     val response =
       Http4sCorrelationMiddleware(TestCorrelationIdDecorator).withCorrelationId(routes).apply(request).value.runSyncUnsafe().get
 
-    //then
+    // then
     response.status shouldBe Status.Ok
 
     seenCids.asScala.toList shouldBe List(Some(testCid))
