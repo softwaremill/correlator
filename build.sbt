@@ -35,8 +35,8 @@ lazy val monixLogbackHttp4s: Project = (project in file("monix-logback-http4s"))
     libraryDependencies ++= Seq(
       "io.monix" %% "monix" % "3.4.0",
       "ch.qos.logback" % "logback-classic" % "1.2.3",
-      "org.http4s" %% "http4s-core" % "0.21.24",
-      "org.http4s" %% "http4s-dsl" % "0.21.24" % "test",
+      "org.http4s" %% "http4s-core" % "0.21.33",
+      "org.http4s" %% "http4s-dsl" % "0.21.33" % "test",
       scalaTest
     )
   )
